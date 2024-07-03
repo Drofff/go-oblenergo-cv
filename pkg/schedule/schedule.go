@@ -90,7 +90,8 @@ func dayStartTimeCV() time.Time {
 	if err != nil {
 		log.Fatalln("failed to load timezone", err)
 	}
-	return time.Now().In(loc)
+	now := time.Now().In(loc)
+	return time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, loc)
 }
 
 func LoadBlackouts(group int) (Blackouts, error) {
@@ -151,11 +152,13 @@ func LoadBlackouts(group int) (Blackouts, error) {
 		if strings.TrimSpace(groupColumn.FirstChild.Data) != tableValuePowerIsOn {
 
 			if currTimeblock.StartAt == nil {
-				currTimeblock.StartAt = &startTime
+				st := startTime
+				currTimeblock.StartAt = &st
 			}
 
 		} else if currTimeblock.StartAt != nil {
-			currTimeblock.EndAt = &startTime
+			st := startTime
+			currTimeblock.EndAt = &st
 			blackouts = append(blackouts, currTimeblock)
 
 			currTimeblock = Timeblock{}
@@ -168,6 +171,11 @@ func LoadBlackouts(group int) (Blackouts, error) {
 
 		startTime = endTime
 		endTime = endTime.Add(1 * time.Hour)
+	}
+
+	if currTimeblock.StartAt != nil {
+		currTimeblock.EndAt = &endTime
+		blackouts = append(blackouts, currTimeblock)
 	}
 
 	return blackouts, nil
